@@ -102,11 +102,7 @@ def evolved(population, ranks):
         
         tmp[i] = person;
 
-    avg = 0;
-    for person in tmp:
-        avg += person.rank;
-    avg /= len(tmp)
-    print "Avg: ", avg
+    
 
     return tmp;
 
@@ -157,9 +153,10 @@ def iterate(population):
 
 
 def copy_list(list1):
-    list0 = []
-    for element in list1:
-        list0.append(element)
+    list0 = [0]*len(list1)
+    for i in range(len(list1)):
+        tmp = list1[i]
+        list0[i] = tmp
     return list0
 
 
@@ -174,50 +171,78 @@ mutation_thresh = 20
 max_num_kids = mutation_thresh/2;
 
 def main():
+    ofile = open('out.dat', 'w')
+    showplots = False;
 
     f = lambda x: x*x*exp(-x*x)
     threshold = 1.2 #a decrease in functionality by (threshold - 1)*100% will not make your population die.
+    N_iter = 10;
+
     
     population = simple_population(f, sinebased, 2, n=1000, basis_size=mutation_thresh)
     best = population[0].rank;
     all_time_best = best;
+    
     print "Best: ", best
+
+    
+    avg = 0;
+    for person in population:
+        avg += person.rank;
+    avg /= len(population)
+
+    best_avg = avg;
+    print "Avg: ", avg, "\n-----------------------"
+
     
     genetic_elite = copy_list(population)
     
-    for i in range(100):
+    for i in range(N_iter):
         population = iterate(population)
 
         new_best = population[0].rank
         print "Best: ", new_best
 
+        avg = 0;
+        for person in population:
+            avg += person.rank;
+        avg /= len(population)
+        print "Avg: ", avg
+
+
+        if new_best < all_time_best:
+            all_time_best = new_best;
+            for X, Value in zip(population[0].x, population[0].values):
+                ofile.write(str(X) +"\t" + str(Value) + "\n")
+            ofile.write("newfunc\n")
+
+                
         #Evolution made the wrong turn...
-        if new_best > best*threshold:
+        if new_best*avg > best*threshold*best_avg:
             population = copy_list(genetic_elite)        
 
-        else:
-            if best < all_time_best:
-                all_time_best = best;
-                super_elite = copy_list(population)
-                
+
+        else:   
             best = new_best
+            best_avg = avg
             genetic_elite = copy_list(population)
 
-            x = population[0].x
-            fx = f(x);
-            figure(1)
+            if showplots:
+                x = population[0].x
+                fx = f(x);
+                figure(1)
+                
+                plot(x, fx, 'b')
+                axis([min(x)*1.2, max(x)*1.2, min(fx)*1.2, max(fx)*1.2])
+                hold("on")
+           
+                plot(x, population[0].values, 'g')
+                hold("off")
+
             
-            plot(x, fx, 'b')
-            axis([min(x)*1.2, max(x)*1.2, min(fx)*1.2, max(fx)*1.2])
-            hold("on")
-       
-            plot(x, population[0].values, 'g')
-            hold("off")
+        print "-----------%d/%d----------" % (i+1,N_iter) 
 
-
-    ofile = open('out.dat', 'w')
-    for x, value in zip(super_elite[0].x, super_elite[0].values):
-        ofile.write(str(x) +"\t" + str(value) + "\n")
+ 
     ofile.close()
     
 
